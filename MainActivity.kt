@@ -34,3 +34,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+listViewTasks.setOnItemLongClickListener { _, _, position, _ ->
+            val alertDialog = AlertDialog.Builder(this)
+                .setTitle("Delete Task")
+                .setMessage("Are you sure you want to delete this task?")
+                .setPositiveButton("Yes")   
+ { _, _ ->
+                    tasks.removeAt(position)
+                    adapter.notifyDataSetChanged()
+                }
+                .setNegativeButton("No", null)
+                .create()
+            alertDialog.show()
+            true
+        }
+    }
+}
