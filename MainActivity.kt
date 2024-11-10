@@ -10,6 +10,8 @@ import androidx.room.RoomDatabase
 import androidx.lifecycle.lifecycleScope
 import androidx.appcompat.app.AlertDialog
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -17,6 +19,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var editTextTask: EditText
     private lateinit var buttonAdd: Button
     private lateinit var listViewTasks: ListView
+    private lateinit   
+ var database: AppDatabase
 
     private val tasks = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
@@ -127,5 +131,55 @@ listViewTasks.setOnItemLongClickListener { _, _, position, _ ->
             alertDialog.show()
             true
         }
+    }
+}
+listViewTasks.setOnItemLongClickListener { _, _, position, _ ->
+            val taskToDelete = tasks[position]
+            val alertDialog = AlertDialog.Builder(this)
+                .setTitle("Delete Task")
+                .setMessage("Are you sure you want to delete this task?")
+                .setPositiveButton("Yes")   
+ { _, _ ->
+                    lifecycleScope.launch {
+                        val taskEntity = database.taskDao().getAllTasks().find { it.task == taskToDelete.first }
+                        if (taskEntity != null) {
+                            database.taskDao().delete(taskEntity)
+                        }
+                        tasks.removeAt(position)
+                        adapter.notifyDataSetChanged()
+                    }
+                }
+                .setNegativeButton("No", null)
+                .create()
+            alertDialog.show()
+            true
+        }
+    }
+
+    private fun showDatePicker(taskText: String, initialDate: String) {
+        val calendar = Calendar.getInstance()
+        val dateParts = initialDate.split("/")
+        val day = dateParts[0].toInt()
+        val month = dateParts[1].toInt() - 1 // Month is 0-indexed
+        val year = dateParts[2].toInt()
+        calendar.set(year, month, day)
+
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
+                val dueDate = "$dayOfMonth/${month + 1}/$year"
+                val task = Task(task = taskText, dueDate = dueDate)
+                lifecycleScope.launch {
+                    database.taskDao().insert(task)
+                    tasks.add(Pair(taskText, dueDate))
+                    adapter.notifyDataSetChanged()
+                }
+                editTextTask.text.clear()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+        datePickerDialog.show()
     }
 }
